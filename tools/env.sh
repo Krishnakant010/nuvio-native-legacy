@@ -23,7 +23,8 @@ case "${1:-}" in
     ;;
 esac
 
-PROP="${NUVIO_PROPERTIES:-$(cd "$(dirname "$0")/../.." && pwd)/NuvioWeb-0.3.38-beta/local.properties}"
+PROP="${NUVIO_PROPERTIES:-$(cd "$(dirname "$0")/.." && pwd)/local.properties}"
+[ -f "$PROP" ] || PROP="$(cd "$(dirname "$0")/../.." && pwd)/NuvioWeb-0.3.38-beta/local.properties"
 
 valor() {
   [ -f "$PROP" ] || return 0

@@ -830,7 +830,8 @@ void cachearte_nativo_inventario(long itens, long bytes, long essenciais_present
 }
 int cachearte_nativo_protegido(const char *path) {
   NativePin *p; const char *base; int protected = 0;
-  if (!path) return 0; base = base_name(path);
+  if (!path) return 0;
+  base = base_name(path);
   pthread_mutex_lock(&s_native_mtx);
   for (p = s_pins; p; p = p->next)
     if ((p->essential || p->inUse) && !strcmp(p->name, base)) { protected = 1; break; }
@@ -838,7 +839,8 @@ int cachearte_nativo_protegido(const char *path) {
 }
 int cachearte_nativo_essencial(const char *path) {
   NativePin *p; const char *base; int essential = 0;
-  if (!path) return 0; base = base_name(path);
+  if (!path) return 0;
+  base = base_name(path);
   pthread_mutex_lock(&s_native_mtx);
   for (p = s_pins; p; p = p->next)
     if (p->essential && !strcmp(p->name, base)) { essential = 1; break; }

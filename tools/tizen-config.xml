@@ -8,12 +8,12 @@
   <!-- required_version 5.5: e a partir dele que a TV executa WebAssembly
        (modelos 2020). Declarar menos faria o pacote instalar num aparelho onde
        o .wasm nunca carrega, e o sintoma seria tela preta sem mensagem. -->
-  <tizen:application id="NuvioTV002.NuvioNative"
-                     package="NuvioTV002"
+  <tizen:application id="NuvioX0001.NuvioX"
+                     package="NuvioX0001"
                      required_version="5.5"/>
   <tizen:profile name="tv"/>
 
-  <name>Nuvio</name>
+  <name>NuvioX</name>
   <icon src="icon.png"/>
   <content src="index.html"/>
   <tizen:content-security-policy>

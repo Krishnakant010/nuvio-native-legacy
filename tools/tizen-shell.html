@@ -102,6 +102,52 @@
             max-width: 177.78vh !important; max-height: 100vh !important;
             z-index: 1; display: block; background: transparent;
             outline: none; }
+  /* Nuvio Watch Party TV Overlay */
+  #nv-wp-hud {
+    position: absolute; top: 40px; right: 40px; z-index: 50;
+    width: 420px; background: rgba(15, 20, 28, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 14px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+    color: #e6edf3; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 20px 24px; pointer-events: auto;
+  }
+  #nv-wp-hud[hidden] { display: none; }
+  .nv-wp-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.12); padding-bottom: 12px; margin-bottom: 14px; }
+  .nv-wp-title { font-size: 19px; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+  .nv-wp-badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; text-transform: uppercase; }
+  .nv-wp-badge.connected { background: #238636; color: #fff; }
+  .nv-wp-badge.connecting { background: #d29922; color: #fff; }
+  .nv-wp-badge.offline { background: #6e7681; color: #fff; }
+  .nv-wp-field { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 14px; }
+  .nv-wp-label { color: #8b949e; font-weight: 500; }
+  .nv-wp-code { font-family: monospace; font-size: 22px; font-weight: 700; color: #58a6ff; letter-spacing: 2px; }
+  .nv-wp-value { color: #f0f6fc; font-weight: 600; }
+  .nv-wp-input {
+    background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 13px; font-family: inherit;
+    outline: none; box-sizing: border-box;
+  }
+  .nv-wp-input:focus {
+    border-color: #58a6ff; background: rgba(88, 166, 255, 0.15); box-shadow: 0 0 0 2px rgba(88,166,255,0.4);
+  }
+  .nv-wp-btn {
+    border: none; padding: 8px 14px; border-radius: 6px; font-weight: 600; font-size: 13px;
+    cursor: pointer; outline: none; transition: background 0.15s;
+  }
+  .nv-wp-btn:focus { box-shadow: 0 0 0 3px #58a6ff; }
+  .nv-wp-btn-primary { background: #238636; color: #fff; }
+  .nv-wp-btn-primary:focus { background: #2ea043; }
+  .nv-wp-btn-secondary { background: rgba(255,255,255,0.12); color: #fff; }
+  .nv-wp-btn-secondary:focus { background: rgba(255,255,255,0.22); }
+  .nv-wp-tip { margin-top: 14px; font-size: 12px; color: #8b949e; line-height: 1.45; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px; }
+  .nv-wp-tip b { color: #58a6ff; }
+  #nv-wp-toast {
+    position: absolute; top: 32px; left: 50%; transform: translateX(-50%);
+    background: rgba(13, 17, 23, 0.92); border: 1px solid rgba(88, 166, 255, 0.4);
+    border-radius: 30px; padding: 10px 24px; color: #fff; font-size: 16px; font-weight: 600;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6); z-index: 60; display: flex; align-items: center; gap: 10px;
+  }
+  #nv-wp-toast[hidden] { display: none; }
 </style>
 </head>
 <body>
@@ -116,6 +162,51 @@
      quando o primeiro quadro NAO chega, que e o unico caso em que ele tinha de
      estar na tela. A tecla verde tambem continua trazendo-o a qualquer hora. -->
 <div id="diag" hidden>Nuvio: iniciando…</div>
+<div id="nv-wp-hud" hidden>
+  <div class="nv-wp-header">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 22px;">🍿</span>
+      <span class="nv-wp-title">Watch Party</span>
+    </div>
+    <span id="nv-wp-badge" class="nv-wp-badge offline">OFFLINE</span>
+  </div>
+  <div class="nv-wp-field">
+    <span class="nv-wp-label">Room Code:</span>
+    <span class="nv-wp-code" id="nv-wp-room-code">NUVIO1</span>
+  </div>
+  <div class="nv-wp-field">
+    <span class="nv-wp-label">Status:</span>
+    <span class="nv-wp-value" id="nv-wp-status-text">Disconnected</span>
+  </div>
+  <div class="nv-wp-field">
+    <span class="nv-wp-label">Viewers:</span>
+    <span class="nv-wp-value" id="nv-wp-participants">1 (TV Host)</span>
+  </div>
+
+  <!-- Editable Settings for TV Client -->
+  <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.12); display: flex; flex-direction: column; gap: 8px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <label class="nv-wp-label" for="nv-wp-room-input">Room Code:</label>
+      <input id="nv-wp-room-input" class="nv-wp-input" type="text" value="NUVIO1" style="width: 140px; text-transform: uppercase; font-weight: bold; text-align: center;" />
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <label class="nv-wp-label" for="nv-wp-server-input">Server URL (Self-hosted or Local):</label>
+      <input id="nv-wp-server-input" class="nv-wp-input" type="text" value="ws://192.168.0.101:8089" style="width: 100%; font-family: monospace; font-size: 12px;" />
+    </div>
+    <div style="display: flex; gap: 8px; margin-top: 4px;">
+      <button id="nv-wp-btn-connect" class="nv-wp-btn nv-wp-btn-primary" style="flex: 1;">Connect</button>
+      <button id="nv-wp-btn-leave" class="nv-wp-btn nv-wp-btn-secondary" style="flex: 1;">Disconnect</button>
+    </div>
+  </div>
+
+  <div class="nv-wp-tip">
+    📱 Syncs both ways with Nuvio Mobile in real time.<br>
+    Press <b>Yellow / W</b> to close.
+  </div>
+</div>
+<div id="nv-wp-toast" hidden>
+  <span id="nv-wp-toast-msg">🍿 Watch Party Ready (Room NUVIO1)</span>
+</div>
 <canvas id="canvas" width="1920" height="1080" tabindex="0"
         oncontextmenu="event.preventDefault()"></canvas>
 <script>
@@ -625,6 +716,19 @@
   // ja existe e e o mesmo dos outros dois alvos; o que faltava era a tecla
   // chegar. Escape porque as telas ja o aceitam ao lado de AC_BACK.
   window.addEventListener("keydown", function (ev) {
+    var hud = document.getElementById("nv-wp-hud");
+    if (hud && !hud.hidden) {
+      if (ev.keyCode === 10009 || ev.key === "Escape") {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (window.__nvToggleWatchPartyHud) window.__nvToggleWatchPartyHud();
+        return;
+      }
+      if (document.activeElement && (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "BUTTON")) {
+        ev.stopPropagation();
+        return;
+      }
+    }
     if (ev.keyCode !== 10009) return;
     ev.preventDefault();
     ev.stopPropagation();
@@ -727,14 +831,21 @@
     if (!p.hidden && window.__nvPintar) window.__nvPintar();
   }
   window.addEventListener("keydown", function (ev) {
-    // 403 = ColorF0Red, 404 = ColorF1Green, 427 = ChannelUp. F1/F2/F3 servem
-    // para testar no desktop.
+    // 403 = ColorF0Red, 404 = ColorF1Green, 405 = ColorF2Yellow, 427 = ChannelUp. F1-F4 servem no desktop.
     var vermelha = (ev.keyCode === 403 || ev.key === "F1");
     var verde    = (ev.keyCode === 404 || ev.key === "F2");
     var canal    = (ev.keyCode === 427 || ev.key === "F3");
-    if (!vermelha && !verde && !canal) return;
+    var amarela  = (ev.keyCode === 405 || ev.key === "F4" || ev.key === "w" || ev.key === "W");
+    if (!vermelha && !verde && !canal && !amarela) return;
     ev.preventDefault();
     ev.stopPropagation();
+
+    // AMARELA (ColorF2Yellow / W) TOGGLES WATCH PARTY HUD
+    if (amarela) {
+      if (window.__nvToggleWatchPartyHud) window.__nvToggleWatchPartyHud();
+      return;
+    }
+
     // CANAL+ ABRE "SALVOS". O keyCode 427 nao existe na tabela do SDL e morreria
     // no navegador, igual as coloridas: vira um "s" sintetico, que e a tecla que
     // app.c ja escuta ao lado do NV_SCANCODE_BLUE da LG.
@@ -759,6 +870,225 @@
       }));
     });
   }, true);
+
+  // --- NUVIO WATCH PARTY FOR SAMSUNG TV ---
+  (function () {
+    var defaultHost = (window.location && window.location.hostname && window.location.hostname !== "" && window.location.hostname !== "localhost")
+                      ? window.location.hostname : "192.168.0.101";
+    var room = (typeof localStorage !== "undefined" && localStorage.getItem("nv_wp_room")) || "NUVIO1";
+    var wpServerUrl = (typeof localStorage !== "undefined" && localStorage.getItem("nv_wp_host")) || ("ws://" + defaultHost + ":8089");
+    var ws = null;
+    var status = "disconnected";
+    var participants = 1;
+    var toastTimer = null;
+    var hudTimer = null;
+    var lastSentState = "";
+    var lastSentTime = -1;
+    var ignoreLocalSyncUntil = 0;
+
+    function getEl(id) { return document.getElementById(id); }
+
+    function showToast(msg, durationMs) {
+      var t = getEl("nv-wp-toast");
+      var m = getEl("nv-wp-toast-msg");
+      if (!t || !m) return;
+      m.textContent = msg;
+      t.hidden = false;
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { t.hidden = true; }, durationMs || 4000);
+    }
+
+    function updateHud() {
+      var badge = getEl("nv-wp-badge");
+      var stText = getEl("nv-wp-status-text");
+      var rCode = getEl("nv-wp-room-code");
+      var parts = getEl("nv-wp-participants");
+      var rInput = getEl("nv-wp-room-input");
+      var sInput = getEl("nv-wp-server-input");
+
+      if (rCode) rCode.textContent = room;
+      if (rInput && document.activeElement !== rInput) rInput.value = room;
+      if (sInput && document.activeElement !== sInput) sInput.value = wpServerUrl;
+      if (parts) parts.textContent = participants + (participants === 1 ? " (Alone in Room)" : " (Synced Two-Way)");
+      if (badge) {
+        badge.className = "nv-wp-badge " + (status === "connected" ? "connected" : (status === "connecting" ? "connecting" : "offline"));
+        badge.textContent = status.toUpperCase();
+      }
+      if (stText) {
+        stText.textContent = status === "connected" ? "Connected (Synced)" : (status === "connecting" ? "Connecting..." : "Offline");
+      }
+    }
+
+    function toggleHud() {
+      var hud = getEl("nv-wp-hud");
+      if (!hud) return;
+      hud.hidden = !hud.hidden;
+      if (!hud.hidden) {
+        updateHud();
+        var rInput = getEl("nv-wp-room-input");
+        if (rInput) try { rInput.focus(); } catch (e) {}
+      } else {
+        var canvas = getEl("canvas");
+        if (canvas) try { canvas.focus(); } catch (e) {}
+      }
+    }
+    window.__nvToggleWatchPartyHud = toggleHud;
+
+    function sendLocalSync(state, timeMs) {
+      if (Date.now() < ignoreLocalSyncUntil) return;
+      if (status !== "connected" || !ws || ws.readyState !== 1) return;
+      lastSentState = state;
+      lastSentTime = timeMs;
+      try {
+        ws.send(JSON.stringify({
+          type: "sync",
+          room: room,
+          state: state,
+          timeMs: timeMs,
+          userId: "tv_client",
+          epoch: Date.now()
+        }));
+      } catch (e) {}
+    }
+    window.__nvOnAvplayStateChange = sendLocalSync;
+
+    function connect() {
+      try {
+        if (ws) { try { ws.close(); } catch(e){} }
+        status = "connecting";
+        updateHud();
+        ws = new WebSocket(wpServerUrl);
+        ws.onopen = function () {
+          status = "connected";
+          updateHud();
+          ws.send(JSON.stringify({
+            type: "join",
+            room: room,
+            userName: "Samsung TV",
+            isLeader: true,
+            epoch: Date.now()
+          }));
+          showToast("🍿 Watch Party Connected (Room " + room + ")", 3500);
+        };
+        ws.onmessage = function (ev) {
+          try {
+            var msg = JSON.parse(ev.data);
+            if (msg.type === "room_state" || msg.type === "participants") {
+              if (typeof msg.participants === "number") {
+                participants = msg.participants;
+                updateHud();
+              }
+            }
+            if (msg.type === "sync" || msg.type === "room_state") {
+              if (window.__nvav && window.__nvav.pl && window.__nvav.aberto) {
+                var p = window.__nvav.pl;
+                var now = Date.now();
+                var elapsed = (msg.epoch && msg.state === "playing") ? Math.max(0, now - msg.epoch) : 0;
+                var targetTime = (typeof msg.timeMs === "number") ? (msg.timeMs + elapsed) : (window.__nvav.posMs || 0);
+                var diff = Math.abs((window.__nvav.posMs || 0) - targetTime);
+
+                ignoreLocalSyncUntil = now + 900;
+                lastSentState = msg.state;
+                lastSentTime = targetTime;
+
+                // High precision sync: 150ms on pause, 350ms on play
+                var threshold = (msg.state === "paused") ? 150 : 350;
+                if (diff > threshold) {
+                  try { p.seekTo(targetTime | 0, function(){}, function(){}); } catch (e) {}
+                  window.__nvav.posMs = targetTime | 0;
+                }
+
+                if (msg.state === "paused" && window.__nvav.tocando) {
+                  try { p.pause(); window.__nvav.tocando = 0; } catch (e) {}
+                  showToast("⏸ Paused by Peer", 2000);
+                } else if (msg.state === "playing" && !window.__nvav.tocando) {
+                  try { p.play(); window.__nvav.tocando = 1; } catch (e) {}
+                  showToast("▶ Resumed by Peer", 2000);
+                }
+              }
+            }
+          } catch (e) {}
+        };
+        ws.onclose = function () {
+          status = "offline";
+          updateHud();
+        };
+        ws.onerror = function () {
+          status = "offline";
+          updateHud();
+        };
+      } catch (e) {
+        status = "offline";
+        updateHud();
+      }
+    }
+
+    // Connect button handler
+    var btnConnect = getEl("nv-wp-btn-connect");
+    if (btnConnect) {
+      btnConnect.addEventListener("click", function () {
+        var rIn = getEl("nv-wp-room-input");
+        var sIn = getEl("nv-wp-server-input");
+        if (rIn && rIn.value) {
+          room = rIn.value.trim().toUpperCase() || "NUVIO1";
+          try { localStorage.setItem("nv_wp_room", room); } catch (e) {}
+        }
+        if (sIn && sIn.value) {
+          var u = sIn.value.trim();
+          if (!u.startsWith("ws://") && !u.startsWith("wss://")) u = "ws://" + u;
+          wpServerUrl = u;
+          try { localStorage.setItem("nv_wp_host", wpServerUrl); } catch (e) {}
+        }
+        showToast("Connecting to " + wpServerUrl + "...", 2500);
+        connect();
+      });
+    }
+
+    // Leave button handler
+    var btnLeave = getEl("nv-wp-btn-leave");
+    if (btnLeave) {
+      btnLeave.addEventListener("click", function () {
+        if (ws) { try { ws.close(); } catch (e) {} }
+        ws = null;
+        status = "offline";
+        updateHud();
+        showToast("Watch Party Disconnected", 2000);
+      });
+    }
+
+    // Connect automatically
+    setTimeout(connect, 1500);
+
+    // Continuous 250ms polling fallback for precision sync
+    setInterval(function () {
+      if (status !== "connected" || !ws || ws.readyState !== 1) return;
+      if (!window.__nvav || !window.__nvav.aberto) return;
+      if (Date.now() < ignoreLocalSyncUntil) return;
+      var curState = window.__nvav.tocando ? "playing" : "paused";
+      var curTime = window.__nvav.posMs || 0;
+      var stateChanged = (curState !== lastSentState);
+      var seeked = (lastSentTime >= 0 && Math.abs(curTime - lastSentTime) > 800 && !stateChanged);
+
+      if (stateChanged || seeked) {
+        sendLocalSync(curState, curTime);
+      }
+    }, 250);
+
+    // Heartbeat every 2.5 seconds
+    setInterval(function () {
+      if (status === "connected" && ws && ws.readyState === 1 && window.__nvav && window.__nvav.aberto) {
+        try {
+          ws.send(JSON.stringify({
+            type: "heartbeat",
+            room: room,
+            state: window.__nvav.tocando ? "playing" : "paused",
+            timeMs: window.__nvav.posMs || 0,
+            epoch: Date.now()
+          }));
+        } catch (e) {}
+      }
+    }, 2500);
+  })();
 
   // O SDL le o teclado do elemento com foco. Sem isto o app abre e nao responde
   // ao controle, o que parece travamento e nao falta de foco.

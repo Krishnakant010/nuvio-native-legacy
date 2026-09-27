@@ -801,7 +801,7 @@ void sync_passo(unsigned agoraMs) {
       // perfil — e antes de desc_repetir_addons, para a volta que ela dispara
       // ja poder podar. Ver addons_marcar_da_conta.
       { int mudou = addons_definir_lista(addonsRem, nAddonsRem);
-        if (nAddonsRem > 0) addons_marcar_da_conta(perfilDoCiclo);
+        addons_marcar_da_conta(perfilDoCiclo);
         if (mudou) desc_repetir_addons(); }
       temAddonsRem = 0;
     }
@@ -863,7 +863,7 @@ void sync_passo(unsigned agoraMs) {
   if (temAddonsRem) {
     if (addons_definir_lista(addonsRem, nAddonsRem)) soAddons = 1;
     // O ciclo de outro perfil ja foi descartado acima: esta lista e do ativo.
-    if (nAddonsRem > 0) addons_marcar_da_conta(perfilDoCiclo);
+    addons_marcar_da_conta(perfilDoCiclo);
     temAddonsRem = 0;
   }
   // Vinculo feito NESTA TV ganha do que a conta manda: o servidor nao aceita o

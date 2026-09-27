@@ -123,10 +123,11 @@ int addons_carregar(const char *dirArte) {
   char caminho[600], linha[900];
   FILE *f;
   perfilLista = 0;
+  nAddon = 0;
+  memset(addon, 0, sizeof addon);
   snprintf(caminho, sizeof caminho, "%s/addons.txt", dirArte ? dirArte : ".");
   f = fopen(caminho, "r");
-  if (!f) { printf("[addons] sem %s\n", caminho); return 0; }
-  nAddon = 0;
+  if (!f) { printf("[addons] sem %s (lista zerada)\n", caminho); return 0; }
   while (nAddon < ADD_MAX && fgets(linha, sizeof linha, f)) {
     char *tab = strchr(linha, '\t');
     char *fim;
@@ -197,12 +198,27 @@ static int listaIgual(const AddonRemoto *nova, int n) {
   return k == nAddon;
 }
 
+int perfis_ativo_addons(void) __attribute__((weak));
+
 int addons_definir_lista(const AddonRemoto *nova, int n) {
   int i, aceitos = 0;
+  int perfilAlvo = perfis_ativo_addons ? perfis_ativo_addons() : 1;
   if (!nova || n <= 0) {
-    // Vazio nao substitui. Ver o comentario no cabecalho: uma resposta vazia
-    // nao se distingue de uma delecao, e a diferenca entre as duas e a pessoa
-    // ficar ou nao sem nenhuma fonte.
+    if (perfilAlvo != 1) {
+      if (perfilLista != perfilAlvo || nAddon > 0) {
+        addons_carregar(NULL);
+        perfilLista = perfilAlvo;
+        versaoLista++;
+        return 1;
+      }
+      return 0;
+    }
+    if (perfilLista != 0 && perfilLista != perfilAlvo) {
+      addons_carregar(NULL);
+      perfilLista = perfilAlvo;
+      versaoLista++;
+      return 1;
+    }
     printf("[addons] lista da conta veio vazia; mantendo a local (%d)\n", nAddon);
     return 0;
   }
@@ -210,7 +226,7 @@ int addons_definir_lista(const AddonRemoto *nova, int n) {
   // inutil — o laco abaixo zera `sondado` e o `id` do manifesto, entao reaplicar
   // uma lista identica jogaria fora o que a sonda aprendeu e faria as colecoes
   // da conta perderem a URL dos addons ate a proxima leitura.
-  if (listaIgual(nova, n)) return 0;
+  if (perfilLista == perfilAlvo && listaIgual(nova, n)) return 0;
   for (i = 0; i < n && aceitos < ADD_MAX; i++) {
     // Addon DESLIGADO tambem entra: ele aparece na lista e pode ser religado
     // aqui. So nao e consultado (ver ativoParaConsulta).
@@ -245,11 +261,27 @@ int addons_definir_lista(const AddonRemoto *nova, int n) {
     aceitos++;
   }
   if (aceitos == 0) {
+    if (perfilAlvo != 1) {
+      if (perfilLista != perfilAlvo || nAddon > 0) {
+        addons_carregar(NULL);
+        perfilLista = perfilAlvo;
+        versaoLista++;
+        return 1;
+      }
+      return 0;
+    }
+    if (perfilLista != 0 && perfilLista != perfilAlvo) {
+      addons_carregar(NULL);
+      perfilLista = perfilAlvo;
+      versaoLista++;
+      return 1;
+    }
     printf("[addons] a conta veio sem addons utilizaveis; mantendo a local\n");
     return 0;
   }
   nAddon = aceitos;
-  printf("[addons] %d vindos da conta\n", nAddon);
+  perfilLista = perfilAlvo;
+  printf("[addons] %d vindos da conta (perfil %d)\n", nAddon, perfilLista);
   // DIZER QUANDO CORTOU. Um addon que some sem uma linha de log e indistinguivel
   // de um addon que a conta nao tem.
   { int uteis = 0, q;

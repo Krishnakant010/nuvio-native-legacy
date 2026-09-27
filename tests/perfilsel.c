@@ -135,6 +135,18 @@ char *sessao_rpc(const char *funcao, const char *corpoJson, int *status) {
   return r ? strdup(r) : NULL;
 }
 
+int nuvem_url_escapar(const char *src, char *dst, size_t dstTam) {
+  if (!src || !dst || !dstTam) return 0;
+  snprintf(dst, dstTam, "%s", src);
+  return (int)strlen(dst);
+}
+
+char *sessao_tabela(const char *tabela, const char *consulta, int *status) {
+  (void)tabela; (void)consulta;
+  if (status) *status = 200;
+  return respPerfis ? strdup(respPerfis) : NULL;
+}
+
 // -----------------------------------------------------------------------------
 static void etapaUm(void) {
   const ContaPerfil *p;

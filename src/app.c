@@ -1368,24 +1368,14 @@ void app_atualizar(float dt, Uint32 agora) {
         invalidarPerfil();
         sync_reaplicar_ajustes();
         // E A FILEIRA DE CONTINUAR, que invalidarPerfil() nao alcanca.
-        //
-        // invalidarPerfil() so zera a tela de Perfil/Stats. Quem refaz o
-        // "Continuar assistindo" e desc_refazer_continuar(), chamada em apenas
-        // dois lugares: o fim de uma reproducao (player.c) e sync.c, sob
-        // `if (syncprog_aplicar(NULL) > 0)`. E ai esta o defeito: progresso.txt
-        // guarda TODOS os perfis num arquivo so, e prog_aplicar_remoto devolve
-        // 0 quando o registro que veio nao e mais novo que o que ja esta em
-        // disco. Voltar para um perfil JA SINCRONIZADO nao traz novidade
-        // nenhuma -> 0 -> a fileira nunca era refeita e continuava mostrando a
-        // do perfil anterior. Relatado por um testador na exp.4: abriu no
-        // perfil 2, trocou para o 1, e o "Continuar assistindo" seguiu sendo o
-        // do 2.
-        //
-        // Aqui NAO se pergunta se o sync trouxe algo: o perfil mudou, e isso
-        // por si so ja torna a fileira na tela a fileira errada. A leitura em
-        // si sempre esteve certa (prog_ler filtra por perfis_ativo()); o que
-        // faltava era o pedido de refazer.
         desc_refazer_continuar();
+        // Se o perfil novo nao herda os addons do primario (ou saiu do primario),
+        // reseta a lista para os padroes locais do pacote para nao manter as fontes
+        // do perfil anterior na tela.
+        if (perfis_ativo_addons() != 1 || perfilAntes == 1) {
+          addons_carregar(NULL);
+          desc_repetir_addons();
+        }
       }
       // O TRAKT E O SIMKL TAMBEM SAO DO PERFIL. O vinculo local era um so por
       // aparelho e o perfil 2 seguia com o Trakt do 1 — watchlist, historico,

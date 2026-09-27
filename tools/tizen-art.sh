@@ -63,16 +63,21 @@ cp "$ORIGEM"/*.jpg "$DESTINO"/ 2>/dev/null || true
 # campo "image" de badges/index.json, entao trocar a extensao la fecha o
 # circuito sem mexer em uma linha de C (ver src/badges.c:63).
 if find "$DESTINO" -name '*.webp' | grep -q .; then
-  command -v sips >/dev/null || { echo "tizen-art.sh: sips ausente, nao da para converter webp" >&2; exit 1; }
   N=0
   for w in $(find "$DESTINO" -name '*.webp'); do
-    sips -s format png "$w" --out "${w%.webp}.png" >/dev/null 2>&1 || {
-      echo "tizen-art.sh: falhou convertendo $w" >&2; exit 1; }
+    out="${w%.webp}.png"
+    if command -v sips >/dev/null 2>&1; then
+      sips -s format png "$w" --out "$out" >/dev/null 2>&1
+    elif command -v convert >/dev/null 2>&1; then
+      convert "$w" "$out" >/dev/null 2>&1
+    elif command -v ffmpeg >/dev/null 2>&1; then
+      ffmpeg -y -i "$w" "$out" >/dev/null 2>&1
+    else
+      echo "tizen-art.sh: nenhum conversor de webp encontrado (sips, convert, ffmpeg)" >&2; exit 1
+    fi
     rm -f "$w"; N=$((N+1))
   done
-  # O indice aponta para os nomes antigos; sem isto o app procura .webp que nao
-  # existe mais e troca um defeito silencioso por outro.
-  [ -f "$DESTINO/badges/index.json" ] && sed -i '' 's/\.webp"/.png"/g' "$DESTINO/badges/index.json"
+  [ -f "$DESTINO/badges/index.json" ] && sed -i.bak 's/\.webp"/.png"/g' "$DESTINO/badges/index.json" && rm -f "$DESTINO/badges/index.json.bak"
   echo "tizen-art.sh: $N webp convertidos para png" >&2
 fi
 

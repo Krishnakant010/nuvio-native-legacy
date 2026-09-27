@@ -213,6 +213,14 @@ int perfis_puxar(void) {
   lerDono();
 
   r = sessao_rpc("sync_pull_profiles", "{}", &st);
+  if (!r || st < 200 || st >= 300) {
+    free(r);
+    char consulta[256], donoEsc[128];
+    nuvem_url_escapar(dono, donoEsc, sizeof donoEsc);
+    snprintf(consulta, sizeof consulta,
+             "user_id=eq.%s&select=*&order=profile_index.asc", donoEsc);
+    r = sessao_tabela("profiles", consulta, &st);
+  }
   if (!r || st < 200 || st >= 300) { free(r); return n; }
 
   // Lista vazia NAO apaga o que ja esta em memoria: e a mesma regra que o app
@@ -258,22 +266,21 @@ int perfis_puxar(void) {
         // Sem o campo, o perfil 1 e o primario — e a mesma regra do web.
         tmp[novos].primario = js_bruto(p, f, "is_primary", b, sizeof b)
                               ? (strcmp(b, "true") == 0) : ((int)idx == 1); }
-      { char b[16];
+      { char b[16] = "";
         // `uses_primary_addons`, NAO `uses_primary_plugins`. Sao DUAS colunas
         // diferentes no servidor e este campo decide de qual perfil vem a lista
-        // de ADDONS; a de plugins nao existe aqui. Relato do Mane155 que pegou
-        // isto: o perfil 2 dele mostrava "0 addons" no nativo e 3 no app web.
-        // Com uses_primary_addons=true e uses_primary_plugins=false, o web
-        // resolvia para o perfil 1 (e achava as 3) enquanto o nativo pedia pelo
-        // perfil 2, que nao tem linha nenhuma na tabela `addons` — resposta
-        // vazia, sem erro, e a tela de ajustes dizendo zero.
-        // O nome antigo fica como reserva: linha gravada por uma versao que so
-        // conhecia aquela coluna continua sendo lida.
-        tmp[novos].usaAddonsDoPrimario =
-          js_bruto(p, f, "uses_primary_addons", b, sizeof b)
-          ? (strcmp(b, "true") == 0)
-          : (js_bruto(p, f, "uses_primary_plugins", b, sizeof b)
-             ? (strcmp(b, "true") == 0) : 0); }
+        // de ADDONS. Se uses_primary_addons estiver explicito (true ou false),
+        // ele e a decisao final. Se for nulo ou ausente, cai em uses_primary_plugins.
+        if (js_bruto(p, f, "uses_primary_addons", b, sizeof b) && !strstr(b, "null")) {
+          tmp[novos].usaAddonsDoPrimario = (strstr(b, "true") != NULL);
+        } else if (js_bruto(p, f, "uses_primary_plugins", b, sizeof b) && !strstr(b, "null")) {
+          tmp[novos].usaAddonsDoPrimario = (strstr(b, "true") != NULL);
+        } else {
+          tmp[novos].usaAddonsDoPrimario = 0;
+        }
+        printf("[perfis] perfil %d: usaAddonsDoPrimario=%d (b=%s)\n",
+               (int)idx, tmp[novos].usaAddonsDoPrimario, b);
+      }
       novos++;
     }
     if (novos > 0) { memcpy(lista, tmp, sizeof lista); n = novos; }

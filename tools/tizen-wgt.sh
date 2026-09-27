@@ -140,7 +140,18 @@ fi
 
 # .wgt e um zip com config.xml na raiz. Sem assinatura, de proposito.
 rm -f "$NOME.wgt"
-( cd "$ESTAGIO" && zip -q -r -X "../../$NOME.wgt" . )
+if command -v zip >/dev/null 2>&1; then
+  ( cd "$ESTAGIO" && zip -q -r -X "../../$NOME.wgt" . )
+else
+  ( cd "$ESTAGIO" && python3 -c "
+import zipfile, os
+with zipfile.ZipFile('../../$NOME.wgt', 'w', zipfile.ZIP_DEFLATED) as zf:
+    for root, _, files in os.walk('.'):
+        for f in files:
+            p = os.path.join(root, f)
+            zf.write(p, os.path.relpath(p, '.'))
+" )
+fi
 echo "tizen-wgt.sh: $NOME.wgt ($(du -h "$NOME.wgt" | cut -f1)) — SEM ASSINATURA"
 
 # ROTACAO DOS PACOTES ANTIGOS.

@@ -70,3 +70,4 @@ listas-p*.txt
 /.planning/
 /docs/diagnosticos/
 /graphify-out/
+local.properties
