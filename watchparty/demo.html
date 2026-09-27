@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nuvio Watch Party — Live Synchronization Demo</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --card-bg: #1a1d27;
+      --accent: #e50914;
+      --accent-hover: #f40612;
+      --text: #ffffff;
+      --text-muted: #8c93a8;
+      --border: #2e3446;
+      --green: #46d369;
+      --yellow: #f5a623;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 24px; min-height: 100vh; }
+    .header { text-align: center; margin-bottom: 28px; }
+    .header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; color: #fff; }
+    .header p { color: var(--text-muted); font-size: 14px; }
+    .toolbar { display: flex; justify-content: center; gap: 12px; margin-bottom: 24px; align-items: center; }
+    .toolbar input, .toolbar button { padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); font-size: 14px; }
+    .toolbar input { background: var(--card-bg); color: #fff; width: 140px; text-transform: uppercase; font-weight: bold; text-align: center; }
+    .toolbar button { background: var(--accent); color: #fff; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .toolbar button:hover { background: var(--accent-hover); }
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .badge.online { background: rgba(70, 211, 105, 0.15); color: var(--green); }
+    .badge.offline { background: rgba(229, 9, 20, 0.15); color: var(--accent); }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 1100px; margin: 0 auto 28px auto; }
+    .player-card { background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border); }
+    .player-card h2 { font-size: 18px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .screen { background: #000; border-radius: 8px; height: 180px; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; overflow: hidden; margin-bottom: 16px; border: 1px solid #333; }
+    .screen .media-title { position: absolute; top: 12px; left: 16px; font-size: 13px; color: var(--text-muted); }
+    .screen .time-display { font-size: 38px; font-weight: 800; letter-spacing: 1px; font-variant-numeric: tabular-nums; }
+    .screen .state-indicator { font-size: 13px; font-weight: 600; margin-top: 4px; }
+    .screen .state-indicator.playing { color: var(--green); }
+    .screen .state-indicator.paused { color: var(--yellow); }
+
+    .progress-bar-container { width: 100%; height: 8px; background: #333; border-radius: 4px; cursor: pointer; position: relative; margin-bottom: 16px; }
+    .progress-bar { height: 100%; background: var(--accent); border-radius: 4px; width: 0%; transition: width 0.1s linear; }
+
+    .controls { display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; }
+    .controls button { padding: 8px 14px; background: #2a2e3d; color: #fff; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
+    .controls button:hover { background: #383e52; }
+    .controls button.primary { background: var(--accent); border: none; }
+    .controls button.primary:hover { background: var(--accent-hover); }
+
+    .telemetry { background: #13151c; padding: 12px; border-radius: 6px; font-size: 12px; color: var(--text-muted); display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .telemetry span b { color: #fff; }
+
+    .logs { max-width: 1100px; margin: 0 auto; background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); padding: 16px; }
+    .logs h3 { font-size: 14px; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .log-box { height: 140px; overflow-y: auto; background: #11131a; border-radius: 6px; padding: 10px; font-family: monospace; font-size: 12px; color: #a9b1d6; }
+    .log-line { margin-bottom: 4px; }
+    .log-line.tx { color: #7aa2f7; }
+    .log-line.rx { color: #9ece6a; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>🍿 Nuvio Watch Party — Live Demo</h1>
+    <p>Simulating real-time synchronized playback between Samsung Tizen TV and Mobile/Web client</p>
+  </div>
+
+  <div class="toolbar">
+    <span class="badge online" id="serverBadge">● SERVER CONNECTED</span>
+    <label>Room: <input type="text" id="roomInput" value="MOVIE"></label>
+    <button id="reconnectBtn">Re-Sync Room</button>
+  </div>
+
+  <div class="grid">
+    <!-- HOST (Samsung TV) -->
+    <div class="player-card">
+      <h2>
+        <span>📺 Host (Samsung Tizen TV)</span>
+        <span class="badge online">LEADER</span>
+      </h2>
+      <div class="screen">
+        <div class="media-title">Interstellar (4K UHD)</div>
+        <div class="time-display" id="hostTime">00:00:00</div>
+        <div class="state-indicator paused" id="hostState">PAUSED</div>
+      </div>
+      <div class="progress-bar-container" id="hostScrubber">
+        <div class="progress-bar" id="hostProgress"></div>
+      </div>
+      <div class="controls">
+        <button id="hostToggle" class="primary">▶ Play</button>
+        <button id="hostRewind">-10s</button>
+        <button id="hostForward">+10s</button>
+        <button id="hostSeekHalf">Jump to 30:00</button>
+      </div>
+      <div class="telemetry">
+        <span>Role: <b>Room Leader</b></span>
+        <span>Broadcasts: <b>Play / Pause / Seek</b></span>
+        <span>Heartbeat: <b>Every 4s</b></span>
+        <span>Output: <b>AVPlay Hardware Sync</b></span>
+      </div>
+    </div>
+
+    <!-- GUEST (Mobile / Web App) -->
+    <div class="player-card">
+      <h2>
+        <span>📱 Guest (Mobile / Web Browser)</span>
+        <span class="badge" id="guestSyncBadge" style="background: rgba(70, 211, 105, 0.15); color: var(--green);">SYNCED</span>
+      </h2>
+      <div class="screen">
+        <div class="media-title">Interstellar (1080p Stream)</div>
+        <div class="time-display" id="guestTime">00:00:00</div>
+        <div class="state-indicator paused" id="guestState">PAUSED</div>
+      </div>
+      <div class="progress-bar-container" id="guestScrubber">
+        <div class="progress-bar" id="guestProgress"></div>
+      </div>
+      <div class="controls">
+        <button id="simulateLagBtn">⚠️ Simulate 5s Drift</button>
+        <button id="guestManualSeek">Manual Seek (15:00)</button>
+      </div>
+      <div class="telemetry">
+        <span>Drift: <b id="driftDisplay">0 ms</b></span>
+        <span>Sync Status: <b id="syncStatusDisplay">In Sync</b></span>
+        <span>Correction Threshold: <b>1500 ms</b></span>
+        <span>Safety Fallback: <b>Uninterrupted Local Play</b></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="logs">
+    <h3>WebSocket Frame Activity Log</h3>
+    <div class="log-box" id="logBox"></div>
+  </div>
+
+  <script src="/client.js"></script>
+  <script>
+    const DURATION = 7200; // 2 hours in seconds
+    let hostSec = 0;
+    let guestSec = 0;
+    let hostPlaying = false;
+    let guestPlaying = false;
+    let hostTimer = null;
+    let guestTimer = null;
+
+    const wsUrl = 'ws://' + window.location.host;
+
+    function formatTime(s) {
+      const h = Math.floor(s / 3600).toString().padStart(2, '0');
+      const m = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
+      const sec = Math.floor(s % 60).toString().padStart(2, '0');
+      return `${h}:${m}:${sec}`;
+    }
+
+    function log(dir, text) {
+      const box = document.getElementById('logBox');
+      const div = document.createElement('div');
+      div.className = 'log-line ' + dir;
+      const time = new Date().toISOString().split('T')[1].slice(0, 8);
+      div.textContent = `[${time}] ${dir === 'tx' ? 'TX ➔' : 'RX ⬅'} ${text}`;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    // Host & Guest WebSockets
+    const hostWs = new WebSocket(wsUrl);
+    const guestWs = new WebSocket(wsUrl);
+
+    hostWs.onopen = () => {
+      const room = document.getElementById('roomInput').value || 'MOVIE';
+      hostWs.send(JSON.stringify({ type: 'join', room: room, userId: 'tizen_tv_host', isLeader: true }));
+      log('tx', `Host joined room ${room} as LEADER`);
+    };
+
+    guestWs.onopen = () => {
+      const room = document.getElementById('roomInput').value || 'MOVIE';
+      guestWs.send(JSON.stringify({ type: 'join', room: room, userId: 'mobile_guest', isLeader: false }));
+      log('tx', `Guest joined room ${room} as FOLLOWER`);
+    };
+
+    guestWs.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      log('rx', `Guest received: ${msg.type} ${msg.state || ''} ${msg.timeMs !== undefined ? (msg.timeMs / 1000) + 's' : ''}`);
+
+      if (msg.type === 'sync' || (msg.type === 'room_state' && !msg.isLeader)) {
+        if (msg.timeMs !== undefined) {
+          const targetSec = msg.timeMs / 1000;
+          const drift = Math.abs(guestSec - targetSec);
+          if (drift > 1.5 || msg.type === 'sync') {
+            guestSec = targetSec;
+            updateGuestUI();
+          }
+        }
+        if (msg.state === 'playing' && !guestPlaying) {
+          startGuest();
+        } else if (msg.state === 'paused' && guestPlaying) {
+          pauseGuest();
+        }
+      } else if (msg.type === 'heartbeat') {
+        const targetSec = msg.timeMs / 1000;
+        const drift = Math.abs(guestSec - targetSec);
+        document.getElementById('driftDisplay').textContent = Math.round(drift * 1000) + ' ms';
+        if (drift > 1.5) {
+          log('rx', `Auto-correcting drift: ${Math.round(drift * 1000)} ms -> snapped to host`);
+          guestSec = targetSec;
+          updateGuestUI();
+        }
+      }
+    };
+
+    function updateHostUI() {
+      document.getElementById('hostTime').textContent = formatTime(hostSec);
+      document.getElementById('hostProgress').style.width = (hostSec / DURATION * 100) + '%';
+      document.getElementById('hostState').textContent = hostPlaying ? 'PLAYING' : 'PAUSED';
+      document.getElementById('hostState').className = 'state-indicator ' + (hostPlaying ? 'playing' : 'paused');
+      document.getElementById('hostToggle').textContent = hostPlaying ? '⏸ Pause' : '▶ Play';
+    }
+
+    function updateGuestUI() {
+      document.getElementById('guestTime').textContent = formatTime(guestSec);
+      document.getElementById('guestProgress').style.width = (guestSec / DURATION * 100) + '%';
+      document.getElementById('guestState').textContent = guestPlaying ? 'PLAYING' : 'PAUSED';
+      document.getElementById('guestState').className = 'state-indicator ' + (guestPlaying ? 'playing' : 'paused');
+      const driftMs = Math.round(Math.abs(hostSec - guestSec) * 1000);
+      document.getElementById('driftDisplay').textContent = driftMs + ' ms';
+      const badge = document.getElementById('guestSyncBadge');
+      if (driftMs < 100) {
+        badge.textContent = 'SYNCED';
+        badge.style.color = 'var(--green)';
+      } else if (driftMs <= 1500) {
+        badge.textContent = 'IN TOLERANCE';
+        badge.style.color = 'var(--yellow)';
+      } else {
+        badge.textContent = 'CATCHING UP...';
+        badge.style.color = 'var(--accent)';
+      }
+    }
+
+    function startHost() {
+      if (hostPlaying) return;
+      hostPlaying = true;
+      updateHostUI();
+      hostTimer = setInterval(() => {
+        hostSec++;
+        updateHostUI();
+      }, 1000);
+      const room = document.getElementById('roomInput').value;
+      hostWs.send(JSON.stringify({ type: 'sync', room: room, state: 'playing', timeMs: hostSec * 1000 }));
+      log('tx', `Host PLAY at ${hostSec}s`);
+    }
+
+    function pauseHost() {
+      if (!hostPlaying) return;
+      hostPlaying = false;
+      clearInterval(hostTimer);
+      updateHostUI();
+      const room = document.getElementById('roomInput').value;
+      hostWs.send(JSON.stringify({ type: 'sync', room: room, state: 'paused', timeMs: hostSec * 1000 }));
+      log('tx', `Host PAUSE at ${hostSec}s`);
+    }
+
+    function startGuest() {
+      if (guestPlaying) return;
+      guestPlaying = true;
+      updateGuestUI();
+      guestTimer = setInterval(() => {
+        guestSec++;
+        updateGuestUI();
+      }, 1000);
+    }
+
+    function pauseGuest() {
+      if (!guestPlaying) return;
+      guestPlaying = false;
+      clearInterval(guestTimer);
+      updateGuestUI();
+    }
+
+    document.getElementById('hostToggle').onclick = () => {
+      if (hostPlaying) pauseHost();
+      else startHost();
+    };
+
+    document.getElementById('hostForward').onclick = () => {
+      hostSec = Math.min(DURATION, hostSec + 10);
+      updateHostUI();
+      const room = document.getElementById('roomInput').value;
+      hostWs.send(JSON.stringify({ type: 'sync', room: room, state: hostPlaying ? 'playing' : 'paused', timeMs: hostSec * 1000 }));
+      log('tx', `Host +10s -> seek to ${hostSec}s`);
+    };
+
+    document.getElementById('hostRewind').onclick = () => {
+      hostSec = Math.max(0, hostSec - 10);
+      updateHostUI();
+      const room = document.getElementById('roomInput').value;
+      hostWs.send(JSON.stringify({ type: 'sync', room: room, state: hostPlaying ? 'playing' : 'paused', timeMs: hostSec * 1000 }));
+      log('tx', `Host -10s -> seek to ${hostSec}s`);
+    };
+
+    document.getElementById('hostSeekHalf').onclick = () => {
+      hostSec = 1800; // 30 minutes
+      updateHostUI();
+      const room = document.getElementById('roomInput').value;
+      hostWs.send(JSON.stringify({ type: 'sync', room: room, state: hostPlaying ? 'playing' : 'paused', timeMs: hostSec * 1000 }));
+      log('tx', `Host Jumped to 30:00 (1800s)`);
+    };
+
+    document.getElementById('simulateLagBtn').onclick = () => {
+      guestSec = Math.max(0, guestSec - 5);
+      updateGuestUI();
+      log('rx', `[Simulated Lag] Guest lagged by 5s. Awaiting next heartbeat/sync pulse to auto-correct.`);
+    };
+
+    document.getElementById('guestManualSeek').onclick = () => {
+      guestSec = 900; // 15 mins
+      updateGuestUI();
+      log('rx', `Guest manual seek to 15:00.`);
+    };
+
+    // Scrubber click on host
+    document.getElementById('hostScrubber').onclick = (e) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const pct = (e.clientX - rect.left) / rect.width;
+      hostSec = Math.round(pct * DURATION);
+      updateHostUI();
+      const room = document.getElementById('roomInput').value;
+      hostWs.send(JSON.stringify({ type: 'sync', room: room, state: hostPlaying ? 'playing' : 'paused', timeMs: hostSec * 1000 }));
+      log('tx', `Host clicked timeline -> ${formatTime(hostSec)}`);
+    };
+
+    // Periodic heartbeat from host every 4s
+    setInterval(() => {
+      if (hostWs.readyState === 1 && hostPlaying) {
+        const room = document.getElementById('roomInput').value;
+        hostWs.send(JSON.stringify({ type: 'heartbeat', room: room, timeMs: hostSec * 1000, state: 'playing' }));
+        log('tx', `Host Heartbeat pulse (${hostSec}s)`);
+      }
+    }, 4000);
+  </script>
+</body>
+</html>

@@ -3,6 +3,8 @@
 // Typical memory footprint: < 15 MB RAM.
 const http = require('http');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 
 const WS_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 const rooms = new Map(); // roomId -> { leaderId, mediaId, state, timeMs, lastEpoch, clients: Set }
@@ -227,6 +229,22 @@ function createServer() {
         uptime: Math.floor(process.uptime())
       }));
       return;
+    }
+    if (req.url === '/' || req.url === '/demo.html' || req.url === '/demo') {
+      const demoPath = path.join(__dirname, 'demo.html');
+      if (fs.existsSync(demoPath)) {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(fs.readFileSync(demoPath));
+        return;
+      }
+    }
+    if (req.url === '/client.js') {
+      const clientPath = path.join(__dirname, 'client.js');
+      if (fs.existsSync(clientPath)) {
+        res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
+        res.end(fs.readFileSync(clientPath));
+        return;
+      }
     }
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('Nuvio Watch Party Server (Active)');
