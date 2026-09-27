@@ -51,6 +51,12 @@ const call = (op, text = '', a = 0, b = 0, c = 0, d = 0, dst = 0, size = 0) =>
     const calls = context.__avReg().filter(entry => entry.startsWith('getTotalTrackInfo'));
     assert.equal(calls.length, 1);
   });
+  check('4K UHD mode and buffering parameters configured safely during abrir', () => {
+    const reg = context.__avReg();
+    assert.ok(reg.some(c => c.includes('setStreamingProperty("SET_MODE_4K", "TRUE")')), 'missing SET_MODE_4K');
+    assert.ok(reg.some(c => c.includes('setBufferingParam("PLAYER_BUFFER_FOR_PLAY"')), 'missing buffer play');
+    assert.ok(reg.some(c => c.includes('setBufferingParam("PLAYER_BUFFER_FOR_RESUME"')), 'missing buffer resume');
+  });
   check('AVPlay timing diagnostics are bounded and contain no URL', () => {
     const timing = diagnostics.filter(entry => / \d+ ms$/.test(entry.message));
     const metadata = diagnostics.filter(entry => /getTotalTrackInfo bruto/.test(entry.message));
@@ -212,5 +218,37 @@ const call = (op, text = '', a = 0, b = 0, c = 0, d = 0, dst = 0, size = 0) =>
   });
   player.play = originalPlay;
   call('parar');
+
+  // Test failure isolation: throwing setStreamingProperty / setBufferingParam must NOT block playback
+  const origSetProp = player.setStreamingProperty;
+  const origSetBuf = player.setBufferingParam;
+  player.setStreamingProperty = function () { throw new Error('4K unsupported on this model'); };
+  player.setBufferingParam = function () { throw new Error('buffer tuning unsupported'); };
+  call('abrir', 'https://example.invalid/unsupported-4k.mkv');
+  await new Promise(resolve => setTimeout(resolve, 30));
+  call('estado', '', 0, 0, 0, 0, 8, 64);
+  check('unsupported 4K / buffering properties do not block playback', () => {
+    assert.equal(context.HEAPF64[4], 1); // tocando == 1
+    assert.equal(context.HEAPF64[5], 1); // pronto == 1
+  });
+  player.setStreamingProperty = origSetProp;
+  player.setBufferingParam = origSetBuf;
+  call('parar');
+
+  // Test deep link ingestion via 'deeplink' op
+  check('no deep link available initially', () => {
+    assert.equal(call('deeplink', '', 0, 0, 0, 0, 500, 256), 0);
+  });
+  context.window.__nvDeepLink = JSON.stringify({ imdb: 'tt1234567', type: 'movie' });
+  check('consumes deep link payload and clears global', () => {
+    outputs.delete(500);
+    assert.equal(call('deeplink', '', 0, 0, 0, 0, 500, 256), 1);
+    const payload = JSON.parse(outputs.get(500));
+    assert.equal(payload.imdb, 'tt1234567');
+    assert.equal(context.window.__nvDeepLink, null);
+    // Second call returns 0
+    assert.equal(call('deeplink', '', 0, 0, 0, 0, 500, 256), 0);
+  });
+
   process.exitCode = failures ? 1 : 0;
 })();

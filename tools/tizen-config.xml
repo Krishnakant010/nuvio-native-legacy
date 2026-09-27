@@ -42,6 +42,11 @@
   <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
   <!-- tv.audio: o player mexe em volume e mudo. -->
   <tizen:privilege name="http://tizen.org/privilege/tv.audio"/>
+  <!-- avplay: public privilege for Samsung hardware media playback pipeline. -->
+  <tizen:privilege name="http://developer.samsung.com/privilege/avplay"/>
+
+  <!-- Smart Hub Preview: optional application content exposure on Samsung TV launcher. -->
+  <tizen:metadata key="http://samsung.com/tv/metadata/use.preview" value="1.0.0"/>
 
   <!-- Sem tela de fundo transparente o plano do AVPlay, que fica ATRAS da
        pagina, nunca aparece: o furo em alpha que gfx_furo abre no framebuffer

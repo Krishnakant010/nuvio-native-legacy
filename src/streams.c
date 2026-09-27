@@ -234,16 +234,20 @@ static long pontos(const Stream *s) {
   // resolve descartando a camada de realce e reescrevendo o RPU, o que exige
   // demuxar e alimentar o pipeline por buffer — outro projeto, ja registrado em
   // video.c. O que ESTA ao alcance e parar de premiar a fonte que nao serve.
+#ifdef __EMSCRIPTEN__
+  // TIZEN RULE (SAMSUNG TV):
+  // Samsung TVs do NOT have hardware decoders for Dolby Vision (only HDR10 / HDR10+).
+  // Streams tagged as Dolby Vision (especially Profile 5) cause black screens or
+  // inverted/purple colors. We deprioritize DV and boost standard 4K HDR10 / SDR.
+  if (s->dolbyVision)                                p -= 100000;
+  if (s->altura >= 2160 && !s->dolbyVision)          p += 100000;
+  else if (s->altura >= 2160)                        p +=  20000;
+#else
+  // WEBOS RULE (LG OLED C9 / others):
+  // LG hardware has native Dolby Vision hardware decoding in MP4 containers.
   if (s->mp4 && s->altura >= 2160 && s->dolbyVision) p += 100000;
   if (s->altura >= 2160)                             p +=  20000;
   if (s->mp4 && s->dolbyVision)                      p +=  10000;
-  // MP4 NA FRENTE DENTRO DA MESMA FAIXA DE RESOLUCAO, pedido do dono (19/09):
-  // na LG o MP4 e o container que toca Dolby Vision de verdade e o que menos
-  // engasga no pipeline; entre um MP4 e um MKV da mesma altura, o MP4. Fica
-  // ABAIXO da faixa de 4K (20000) de proposito: um MP4 1080p nao passa na
-  // frente de um MKV 4K — trocar resolucao por container e outra decisao.
-  // Nao vale no Tizen: la o AVPlay le MKV sem esse rebaixamento.
-#ifndef __EMSCRIPTEN__
   if (s->mp4)                                        p +=   5000;
 #endif
   if (s->dolbyAtmos)                                 p +=   2000;

@@ -249,7 +249,51 @@ EM_JS(double, nv_av, (const char *cmd, const char *txt,
     } catch (e) {}
   }
 
+  // OPTIONAL AVPLAY CONFIGURATION (4K UHD Mode, Adaptive Buffering).
+  // Safe abstraction:
+  // 1. Detects method availability before calling.
+  // 2. Attempts configuration within isolated try/catch blocks.
+  // 3. Logs success or warning to __nvDiag without exposing URLs.
+  // 4. If unsupported or failing, continues with safe firmware defaults.
+  // NEVER blocks or prevents video playback.
+  function configureOptionalAvplay(player) {
+    if (!player) return;
+
+    // 1. 4K UHD Mode (Samsung AVPlay)
+    try {
+      if (typeof player.setStreamingProperty === "function") {
+        player.setStreamingProperty("SET_MODE_4K", "TRUE");
+        if (window.__nvDiag) window.__nvDiag("[video] 4K mode enabled", 0);
+      }
+    } catch (e4k) {
+      if (window.__nvDiag) window.__nvDiag("[video] 4K mode unavailable: " + e4k, 0);
+    }
+
+    // 2. Buffer Parameters (PLAYER_BUFFER_FOR_PLAY / RESUME)
+    // Experimental values: 15MB initial buffer to prevent 4K stutter, 30MB for resume.
+    // If rejected by TV firmware, defaults are retained automatically.
+    try {
+      if (typeof player.setBufferingParam === "function") {
+        var bufPlay = 15 * 1024 * 1024;   // 15 MB
+        var bufResume = 30 * 1024 * 1024; // 30 MB
+        player.setBufferingParam("PLAYER_BUFFER_FOR_PLAY", "PLAYER_BUFFER_SIZE_IN_BYTE", bufPlay);
+        player.setBufferingParam("PLAYER_BUFFER_FOR_RESUME", "PLAYER_BUFFER_SIZE_IN_BYTE", bufResume);
+        if (window.__nvDiag) window.__nvDiag("[video] buffers configured (15MB/30MB)", 0);
+      }
+    } catch (eBuf) {
+      if (window.__nvDiag) window.__nvDiag("[video] setBufferingParam unavailable: " + eBuf, 0);
+    }
+  }
+
   if (op === "disp") return pl() ? 1 : 0;
+
+  // Deep Link handler: consumes pending deep link payload from Smart Hub preview
+  if (op === "deeplink") {
+    if (!G.__nvDeepLink || !dst || dstTam <= 0) return 0;
+    stringToUTF8(G.__nvDeepLink, dst, dstTam);
+    G.__nvDeepLink = null;
+    return 1;
+  }
 
   if (op === "abrir") {
     var p = pl();
@@ -271,6 +315,7 @@ EM_JS(double, nv_av, (const char *cmd, const char *txt,
     // partir da proporcao do quadro (ver player.c:594), e deixar o AVPlay
     // encaixar de novo dentro dele aplicaria a mesma barra preta duas vezes.
     try { p.setDisplayMethod("PLAYER_DISPLAY_MODE_FULL_SCREEN"); } catch (e) {}
+    configureOptionalAvplay(p);
     // Dois tempos diferentes: `retorno` mede se a chamada JS bloqueou antes de
     // devolver; `ate-callback` inclui a espera normal de rede/demuxer ate o
     // firmware avisar que terminou. Sem os dois, um callback tardio parece

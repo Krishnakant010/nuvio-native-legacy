@@ -45,6 +45,8 @@
     getState:        function ()  { return estado; },
     getCurrentTime:  function ()  { return 0; },
     getDuration:     function ()  { return 7200000; },
+    setStreamingProperty: function (k, v) { log("setStreamingProperty", arguments); },
+    setBufferingParam:    function (t, u, s) { log("setBufferingParam", arguments); },
     setSelectTrack:  function (t, i) { log("setSelectTrack", arguments); },
     setExternalSubtitlePath: function (p) { log("setExternalSubtitlePath", arguments); },
     setSilentSubtitle: function (b) { log("setSilentSubtitle", arguments); },
@@ -63,6 +65,37 @@
       ];
     }
   };
+
+  // Samsung Smart Hub Preview API mock
+  window.webapis.preview = {
+    setPreviewData: function (jsonStr, ok, err) {
+      log("setPreviewData", arguments);
+      try {
+        JSON.parse(jsonStr);
+        if (ok) setTimeout(ok, 5);
+      } catch (e) {
+        if (err) setTimeout(function () { err(e); }, 5);
+      }
+    }
+  };
+
+  // Tizen Application & AppControl mock
+  var appControlData = [];
+  window.tizen = window.tizen || {};
+  window.tizen.application = {
+    getCurrentApplication: function () {
+      return {
+        getRequestedAppControl: function () {
+          return {
+            appControl: {
+              data: appControlData
+            }
+          };
+        }
+      };
+    }
+  };
+  window.__tizenSetAppControlData = function (data) { appControlData = data || []; };
   window.__avReg = function () { return reg; };
   // O listener instalado, para o teste disparar onsubtitlechange (#122).
   window.__avOuvinte = function () { return ouvinte; };

@@ -37,7 +37,7 @@ VARIANTE=""
 # avisos, recomendacoes, sync periodico, GIF de foco). Esta variante devolve
 # o pool a 12 e desliga os quatro (NV_LEVE em app.c/avisos.c/home.c) para a
 # pessoa comparar com a 1.0.26 e com a normal. Nao e para publicar.
-POOL=20
+POOL=12
 if [ "${1:-}" = "--leve" ]; then
   VARIANTE="leve"
   POOL=12
@@ -200,13 +200,13 @@ if [ "${NUVIO_ASS_LIBASS:-1}" = "1" ]; then
   ASS_CFLAGS="-DNV_ASS_LIBASS -I$ASS_ROOT/include"
   ASS_LIBS="-L$ASS_ROOT/lib -Wl,--start-group -lass -lharfbuzz -lfribidi -lfreetype -Wl,--end-group"
 fi
-eval emcc $SOURCES ${EXTRA_SOURCES} -o "$SAIDA/index.html" -O2 "$ENV_D" ${NUVIO_EXTRA_CFLAGS:-} $ASS_CFLAGS $ASS_LIBS \
+eval emcc $SOURCES ${EXTRA_SOURCES} -o "$SAIDA/index.html" -O3 "$ENV_D" ${NUVIO_EXTRA_CFLAGS:-} $ASS_CFLAGS $ASS_LIBS \
   -sWASM_BIGINT=0 \
   -sUSE_SDL=2 -sUSE_SDL_IMAGE=2 -sUSE_SDL_TTF=2 -sUSE_LIBJPEG=1 \
   `# zlib do emscripten: epg.c infla o XMLTV .gz do epgshare01 com inflate.` \
   -sUSE_ZLIB=1 \
   -sSDL2_IMAGE_FORMATS='["png","jpg"]' \
-  -sMAX_WEBGL_VERSION=1 \
+  -sMAX_WEBGL_VERSION=2 \
   -sINITIAL_MEMORY=268435456 -sALLOW_MEMORY_GROWTH=0 -sABORTING_MALLOC=1 \
   `# PILHAS DE 8 MB, e nao o padrao de 64 KB do emscripten. Esta build estava` \
   `# SEM as duas linhas, sozinha entre as builds do projeto: a bancada de teste` \

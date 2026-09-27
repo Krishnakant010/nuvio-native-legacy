@@ -362,7 +362,7 @@
                " / dpr " + window.devicePixelRatio);
       d("avplay", (typeof webapis !== "undefined" && webapis && webapis.avplay) ? "presente" : "AUSENTE");
       var cv = document.createElement("canvas");
-      var gl = cv.getContext("webgl", { alpha: true }) || cv.getContext("experimental-webgl", { alpha: true });
+      var gl = cv.getContext("webgl2", { alpha: true }) || cv.getContext("webgl", { alpha: true }) || cv.getContext("experimental-webgl", { alpha: true });
       if (!gl) { d("WebGL", "CONTEXTO RECUSADO"); }
       else {
         d("WebGL", gl.getParameter(gl.VERSION));
@@ -465,6 +465,38 @@
     printErr: function (t) { console.warn(t); if (window.__nvDiag) window.__nvDiag(t, 1); }
   };
 
+  // SAMSUNG SMART HUB PREVIEW (OPTIONAL & SAFE)
+  // Exposes sections and cards in the Samsung Smart Hub TV launcher (Tizen 2016+).
+  // 1. Enforces Samsung's rate limit: maximum 1 update every 10 minutes.
+  // 2. Isolated in try/catch: any firmware rejection or error is silently discarded
+  //    without impacting application stability or playback.
+  var __ultimoSmartHubUpdate = 0;
+  window.__nvPublicarSmartHubPreview = function (dados) {
+    try {
+      if (typeof webapis === "undefined" || !webapis || !webapis.preview ||
+          typeof webapis.preview.setPreviewData !== "function") {
+        return false;
+      }
+      var agora = Date.now();
+      if (agora - __ultimoSmartHubUpdate < 600000) {
+        return false;
+      }
+      if (!dados || !dados.sections || !dados.sections.length) return false;
+
+      var payload = JSON.stringify(dados);
+      __ultimoSmartHubUpdate = agora;
+      webapis.preview.setPreviewData(payload, function () {
+        if (window.__nvDiag) window.__nvDiag("[preview] Smart Hub updated successfully", 0);
+      }, function (err) {
+        if (window.__nvDiag) window.__nvDiag("[preview] failed to update Smart Hub: " + err, 1);
+      });
+      return true;
+    } catch (e) {
+      if (window.__nvDiag) window.__nvDiag("[preview] Smart Hub exception: " + e, 1);
+      return false;
+    }
+  };
+
   // Teclas do controle Samsung. Sem registrar, o firmware nao entrega nada alem
   // das setas e do OK — as coloridas, as de midia e o Return sao engolidas
   // pelo sistema. Equivale ao hint SDL_WEBOS_ACCESS_POLICY_KEYS_BACK do webOS.
@@ -503,6 +535,45 @@
       var nomes = [];
       for (var i = 0; i < ks.length; i++) nomes.push(ks[i].name);
       console.log("[tecla] a TV aceita " + ks.length + ": " + nomes.join(" "));
+    }
+  } catch (e) {}
+
+  // DEEP LINKING (Samsung Tizen RequestedAppControl)
+  // When a user selects a tile in the Smart Hub Preview, the TV delivers the payload
+  // via the AppControl object (either on startup or when resuming from background).
+  window.__nvDeepLink = null;
+  function processarAppControl(req) {
+    try {
+      if (!req || !req.appControl) return;
+      var data = req.appControl.data || [];
+      for (var i = 0; i < data.length; i++) {
+        var item = data[i];
+        if (item.key === "PAYLOAD" || item.key === "action_data") {
+          var val = Array.isArray(item.value) ? item.value[0] : item.value;
+          if (val && typeof val === "string") {
+            window.__nvDeepLink = val;
+            if (window.__nvDiag) window.__nvDiag("[deeplink] payload received: " + val.slice(0, 50), 0);
+          }
+        }
+      }
+    } catch (e) {
+      if (window.__nvDiag) window.__nvDiag("[deeplink] parse error: " + e, 1);
+    }
+  }
+
+  try {
+    if (window.tizen && tizen.application) {
+      var app = tizen.application.getCurrentApplication();
+      if (app && app.getRequestedAppControl) {
+        processarAppControl(app.getRequestedAppControl());
+      }
+      if (app && app.addEventListener) {
+        app.addEventListener("appcontrol", function () {
+          try {
+            if (app.getRequestedAppControl) processarAppControl(app.getRequestedAppControl());
+          } catch (e2) {}
+        });
+      }
     }
   } catch (e) {}
 

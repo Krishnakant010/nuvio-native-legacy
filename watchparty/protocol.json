@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NuvioWatchPartyProtocol",
+  "description": "Standardized lightweight synchronization protocol for Nuvio Watch Party across Tizen TV, mobile, and web.",
+  "version": "1.0.0",
+  "messages": {
+    "join": {
+      "type": "object",
+      "required": ["type", "room", "userId"],
+      "properties": {
+        "type": { "const": "join" },
+        "room": { "type": "string", "maxLength": 32 },
+        "userId": { "type": "string", "maxLength": 64 },
+        "userName": { "type": "string", "maxLength": 64 },
+        "isLeader": { "type": "boolean" }
+      }
+    },
+    "sync": {
+      "type": "object",
+      "required": ["type", "room", "state", "timeMs"],
+      "properties": {
+        "type": { "const": "sync" },
+        "room": { "type": "string" },
+        "userId": { "type": "string" },
+        "state": { "enum": ["playing", "paused", "buffering"] },
+        "timeMs": { "type": "integer", "minimum": 0 },
+        "mediaId": { "type": "string" },
+        "epoch": { "type": "integer" }
+      }
+    },
+    "heartbeat": {
+      "type": "object",
+      "required": ["type", "room", "timeMs"],
+      "properties": {
+        "type": { "const": "heartbeat" },
+        "room": { "type": "string" },
+        "timeMs": { "type": "integer" },
+        "state": { "enum": ["playing", "paused"] }
+      }
+    },
+    "room_state": {
+      "type": "object",
+      "required": ["type", "room", "state", "timeMs", "participants"],
+      "properties": {
+        "type": { "const": "room_state" },
+        "room": { "type": "string" },
+        "leaderId": { "type": "string" },
+        "mediaId": { "type": "string" },
+        "state": { "enum": ["playing", "paused"] },
+        "timeMs": { "type": "integer" },
+        "participants": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}
